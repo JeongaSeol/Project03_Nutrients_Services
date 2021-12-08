@@ -1,0 +1,4 @@
+train : ./img/train
+val : ./img/val
+nc : 6
+classes : ./img/classes.txt 

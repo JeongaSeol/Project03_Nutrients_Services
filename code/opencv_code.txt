@@ -1,0 +1,67 @@
+import cv2
+import numpy as np 
+
+# yolo load(openCV로 YOLO 사용)
+
+net = cv2.dnn.readNet('yolov3.weights', 'yolov3.cfg')
+classes = ['백미밥', '배추김치', '계란프라이', '스팸', '라면', '조미김']
+
+layer_names = net.getLayerNames()
+output_layers = [layer_names[i[0]-1] for i in net.getUnconnectedOutLayers()]
+colors = np.random.uniform(0,255, size = (len(classes), 3))
+
+# image load
+
+img = cv2.imread('image.jpg')
+# 이미지 resize로 40%로 축소. 정확도 떨어지지만 속도가 빠름. 
+# 속도나 정확성 보고 추후에 해당 코드를 추가할지 안할지 선택
+img = cv2.resize(img, None, fx = 0.4, fy = 0.4) 
+
+height, width, channels = img.shape
+
+# objects detecting
+blob = cv2.dnn.blobFromImage(img, 0.00392, (416,416), (0,0,0), True, crop=False)
+net.setInput(blob)
+outs = net.forward(output_layers)
+
+# result print
+class_ids = []
+confidences = []
+boxes = []
+for out in outs:
+    for detection in out:
+        scores = detection[5:]
+        class_id = np.argmax(scores)
+        confidence = scores[class_id]
+        if confidence > 0.5 :
+            center_x = int(detection[0] * width)
+            center_y = int(detection[1] * height)
+            w = int(detection[2] * width)
+            h = int(detection[3] * height)
+            x = int(center_x - w/2)
+            y = int(center_y - h/2)
+            boxes.append([x,y,w,h])
+            confidences.append(float(confidence))
+            class_ids.append(class_id)
+
+#  중복박스 제거
+indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
+# 화면 출력
+font = cv2.FONT_HERSHEY_PLAIN
+class_list = []
+for i in range(len(boxes)):
+    if i in indexes:
+        x, y, w, h = boxes[i]
+        label = str(classes[class_ids[i]])
+        class_list.append(label)
+        color = colors[i]
+        cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
+        cv2.putText(img, label, (x, y+30), font,3, color, 3)
+
+# class_list => 검출된 class 목록 -> db에 저장? 
+
+# 이미지 출력 - 이부분은 나중에 이미지 저장해서 html로 보내주는 코드로 수정
+cv2.imshow('Image', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

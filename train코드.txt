@@ -1,0 +1,1 @@
+python train.py --img 416 --batch 32 --epochs 950 --data ./data.yaml --cfg ./models/yolov5s.yaml --weights ./runs/train/exp9/weights/best.pt --patience 0 
